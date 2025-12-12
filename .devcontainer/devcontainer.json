@@ -1,0 +1,42 @@
+{
+  "name": "ESP8266 RTOS SDK Devcontainer",
+  
+  "image": "wifi-moisture-sensor-dev",
+
+  "remoteUser": "root",
+  
+  "platform": "linux/amd64",
+    "runArgs": [
+    "--platform=linux/amd64"
+  ],
+  
+  "cmake.buildArgs": ["--", "-j1"],
+
+  // Folder inside the container where VS Code will open your project
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "cmake.configureOnOpen": true,
+        "cmake.generator": "Unix Makefiles",
+
+        // Make sure CMake sees the SDK path
+        "cmake.configureEnvironment": {
+          "IDF_PATH": "/opt/esp/ESP8266_RTOS_SDK"
+        },
+
+        // (Optional) nicer terminal + C/C++ defaults
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "C_Cpp.intelliSenseEngineFallback": "Disabled"
+      },
+      "extensions": [
+          "ms-vscode.cpptools-extension-pack",
+          "ms-vscode.cmake-tools",
+          "ms-python.python",
+          "IBM.output-colorizer",
+          "ELF-Ripper-DevTeam.elf-ripper"
+      ]
+    }
+  }
+}

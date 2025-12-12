@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Xtensa ESP8266",
+    "compilers": {
+      "C": "/opt/xtensa/xtensa-lx106-elf/bin/xtensa-lx106-elf-gcc",
+      "CXX": "/opt/xtensa/xtensa-lx106-elf/bin/xtensa-lx106-elf-g++"
+    }
+  }
+]
