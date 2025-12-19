@@ -38,28 +38,10 @@ RUN mkdir -p /opt/xtensa && \
 
 ENV PATH="/opt/xtensa/xtensa-lx106-elf/bin:${PATH}"
 
-# --- ESP8266 RTOS SDK ---
-RUN mkdir -p /opt/esp && \
-    cd /opt/esp && \
-    git clone --recursive https://github.com/espressif/ESP8266_RTOS_SDK.git
+RUN python -m pip install --upgrade pip setuptools wheel
 
-ENV IDF_PATH="/opt/esp/ESP8266_RTOS_SDK"
-
-# Python deps for the SDK (system-wide, visible to all users)
-RUN python -m pip install --upgrade pip setuptools wheel && \
-    python -m pip install --no-cache-dir -r "${IDF_PATH}/requirements.txt" && \
-    if [ -f "${IDF_PATH}/tools/requirements/requirements.txt" ]; then \
-        python -m pip install --no-cache-dir -r "${IDF_PATH}/tools/requirements/requirements.txt"; \
-    fi && \
-    python -m pip install --no-cache-dir \
-        future \
-        pyserial \
-        pyyaml \
-        pyparsing \
-        kconfiglib
-
-# Make sure the non-root user "vscode" can read/write SDK/toolchain dirs if needed
-RUN chown -R vscode:vscode /opt/xtensa /opt/esp || true
+# Make sure the non-root user "vscode" can read/write toolchain dirs if needed
+RUN chown -R vscode:vscode /opt/xtensa || true
 
 # --- Final user & working dir ---
 USER vscode
