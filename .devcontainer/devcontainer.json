@@ -1,34 +1,73 @@
 {
   "name": "ESP8266 RTOS SDK Devcontainer",
-  "image": "wifi-moisture-sensor-dev",
-
+  "image": "wifi-moisture-sensor-dev:latest",
   "remoteUser": "vscode",
 
   "platform": "linux/amd64",
-  "runArgs": ["--platform=linux/amd64"],
+  "runArgs": [
+    "--platform=linux/amd64",
+    "--add-host=host.docker.internal:host-gateway"
+  ],
 
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
+  // Forward macOS SSH agent into the container (no private keys stored in container)
+  "mounts": [
+    "type=bind,source=/run/host-services/ssh-auth.sock,target=/ssh-agent"
+  ],
+
   "remoteEnv": {
-    "IDF_PATH": "/workspaces/${localWorkspaceFolderBasename}/Deps/ESP8266_RTOS_SDK"
+    "SSH_AUTH_SOCK": "/ssh-agent",
+    "IDF_PATH": "/workspaces/${localWorkspaceFolderBasename}/Deps/ESP8266_RTOS_SDK",
+    "HOST_REPO": "/Users/josemiranda/Projects/wifi-moisture-sensor",
+    "HOST_USER": "josemiranda"
   },
 
-"postCreateCommand": "git submodule update --init Deps/ESP8266_RTOS_SDK && cd $IDF_PATH && git submodule update --init components/coap/libcoap && cd components/coap/libcoap && git config -f .gitmodules submodule.ext/tinydtls.url https://github.com/eclipse-tinydtls/tinydtls.git && git submodule sync --recursive && git submodule update --init --recursive ext/tinydtls && python -m pip install --user -r $IDF_PATH/requirements.txt",
+  // Runs every time the container starts (idempotent).
+  // - Seeds known_hosts (no interactive prompt)
+  // - Writes ~/.ssh/config for "mac-host" using the forwarded agent
+  // - Warns if the agent socket isn't available
+  "postStartCommand": "bash -lc \"set -e; \
+    mkdir -p ~/.ssh; chmod 700 ~/.ssh; \
+    ssh-keygen -R host.docker.internal >/dev/null 2>&1 || true; \
+    ssh-keygen -R 192.168.65.254 >/dev/null 2>&1 || true; \
+    ssh-keyscan -H host.docker.internal 2>/dev/null >> ~/.ssh/known_hosts || true; \
+    chmod 600 ~/.ssh/known_hosts; \
+    if [ ! -f ~/.ssh/config ]; then \
+      cat > ~/.ssh/config <<'EOF'\n\
+Host mac-host\n\
+  HostName host.docker.internal\n\
+  User ${HOST_USER}\n\
+  IdentitiesOnly yes\n\
+  IdentityAgent ${SSH_AUTH_SOCK}\n\
+EOF\n\
+      chmod 600 ~/.ssh/config; \
+    fi; \
+    if [ ! -S ${SSH_AUTH_SOCK} ]; then \
+      echo '[devcontainer] WARNING: SSH agent socket not found at' ${SSH_AUTH_SOCK}; \
+      echo '[devcontainer] On macOS run: ssh-add -l (and ssh-add ~/.ssh/id_ed25519 if needed)'; \
+    fi\"",
+
+  // Runs once when the container is first created.
+  "postCreateCommand": "bash -lc 'set -e; \
+    git submodule update --init Deps/ESP8266_RTOS_SDK; \
+    cd \"$IDF_PATH\"; \
+    git submodule update --init components/coap/libcoap; \
+    cd components/coap/libcoap; \
+    git config -f .gitmodules submodule.ext/tinydtls.url https://github.com/eclipse-tinydtls/tinydtls.git; \
+    git submodule sync --recursive; \
+    git submodule update --init --recursive ext/tinydtls; \
+    python -m pip install --user -r \"$IDF_PATH/requirements.txt\"'",
 
   "customizations": {
     "vscode": {
       "settings": {
         "cmake.configureOnOpen": true,
         "cmake.generator": "Unix Makefiles",
-
-        // optional: force single job builds (instead of your top-level field)
         "cmake.buildArgs": ["--", "-j1"],
-
-        // ensure CMake sees IDF_PATH
         "cmake.configureEnvironment": {
           "IDF_PATH": "/workspaces/${localWorkspaceFolderBasename}/Deps/ESP8266_RTOS_SDK"
         },
-
         "terminal.integrated.defaultProfile.linux": "bash",
         "C_Cpp.intelliSenseEngineFallback": "Disabled"
       },
@@ -42,3 +81,4 @@
     }
   }
 }
+  
